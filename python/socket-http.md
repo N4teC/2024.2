@@ -232,7 +232,7 @@ fazer_requisicao_get()
     - Usamos `conexao.close()` para fechar a conexão.
 
 
-### 3. Análise do Experimento 1:
+## 3. Análise do Experimento 1:
 
 ### 1. **Executar o servidor HTTP sem thread (Subseção 2.1)**
 
