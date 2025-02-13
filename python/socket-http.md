@@ -232,7 +232,127 @@ fazer_requisicao_get()
     - Usamos `conexao.close()` para fechar a conexão.
 
 
-### 3. Experimento 2
+### 3. Análise do Experimento 1:
+
+### 1. **Executar o servidor HTTP sem thread (Subseção 2.1)**
+
+No código, o servidor é criado e o método `serve_forever()` do `HTTPServer` é chamado, que mantém o servidor ouvindo e processando requisições de maneira síncrona, ou seja, uma requisição de cada vez.
+
+### 2. **Executar o cliente (Subseção 2.3)**
+
+Aqui, podemos criar um cliente HTTP simples para fazer as requisições ao servidor. Um exemplo básico de código para o cliente seria o seguinte:
+
+```python
+import requests
+
+# URL do servidor
+url = "http://localhost:8000"
+
+# Fazer uma requisição GET ao servidor
+response = requests.get(url)
+
+# Imprimir a resposta recebida
+print("Código de status da resposta:", response.status_code)
+print("Conteúdo da resposta:", response.text)
+```
+
+Esse código realiza uma requisição GET ao servidor e imprime o código de status e o conteúdo da resposta recebida.
+
+### 3. **Cenários a serem analisados com o servidor sem threads**
+
+#### a) **Apenas 1 cliente**
+- O servidor, sem threads, lida com a requisição de apenas um cliente por vez. O servidor vai processar a requisição, enviar a resposta e então aguardar a próxima. Quando um cliente faz a requisição, ele obtém a resposta normalmente, enquanto o servidor fica ocupado com essa requisição.
+- O comportamento do servidor será o de atender as requisições uma a uma, sem qualquer simultaneidade.
+
+#### b) **2 clientes simultâneos**
+- Quando dois clientes tentam fazer requisições simultaneamente, o servidor irá processá-las de forma sequencial. Isso significa que um cliente terá que aguardar o outro ser atendido, e não haverá simultaneidade no atendimento. Isso pode fazer com que o tempo de resposta de um cliente aumente dependendo de quando ele envia sua requisição.
+  
+#### c) **5 clientes simultâneos**
+- Com cinco clientes simultâneos, o servidor continuará a processar as requisições de forma sequencial, o que pode causar um aumento no tempo de espera para os clientes. O servidor não conseguirá atender mais de um cliente ao mesmo tempo, o que resulta em latência maior com o aumento do número de clientes.
+
+#### d) **10 clientes simultâneos**
+- Com dez clientes simultâneos, o servidor ainda irá processar as requisições de forma sequencial, mas a latência será ainda mais evidente. Se o servidor estiver sobrecarregado, ele poderá até mesmo falhar em conseguir atender todos os clientes de maneira eficiente, resultando em tempos de espera muito altos.
+
+### 4. **Parar servidor sem thread e executar servidor com thread (Subseção 2.2)**
+
+O servidor pode ser modificado para usar threads e processar as requisições de forma simultânea. Isso é possível utilizando ThreadingHTTPServer, que cria uma nova thread para cada requisição recebida, permitindo que várias requisições sejam atendidas ao mesmo tempo.
+
+Aqui está o código do servidor com threads:
+
+```python
+import http.server
+import socketserver
+import threading
+
+# Definir o conteúdo HTML fixo
+html_fixo = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Servidor HTTP com Thread</title>
+</head>
+<body>
+    <h1>Olá, mundo!</h1>
+    <p>Este é um servidor HTTP com thread em Python.</p>
+</body>
+</html>
+"""
+
+class MeuManipulador(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        # Imprimir informações da requisição no console
+        print(f"Requisição recebida de: {self.client_address}")
+        print(f"Caminho solicitado: {self.path}")
+        print("Cabeçalhos da requisição:")
+        for nome, valor in self.headers.items():
+            print(f"{nome}: {valor}")
+
+        # Enviar resposta de código 200
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        # Enviar o conteúdo HTML fixo
+        self.wfile.write(html_fixo.encode("utf-8"))
+
+# Definir o endereço e a porta do servidor
+endereco = ("", 8000)
+
+# Criar o servidor com threading
+httpd = socketserver.ThreadingTCPServer(endereco, MeuManipulador)
+print("Servidor HTTP rodando na porta 8000 com Thread...")
+# Manter o servidor rodando
+httpd.serve_forever()
+```
+
+Neste código, foi utilizado `ThreadingTCPServer`, que cria uma thread para cada requisição.
+
+### 5. **Executar o cliente novamente (Subseção 2.3)**
+
+Com o servidor utilizando threads, o mesmo cliente de antes deve ser executado. O comportamento do cliente permanece o mesmo, mas a forma como o servidor responde a ele é alterada.
+
+### 6. **Cenários a serem analisados com o servidor com threads**
+
+#### a) **Apenas 1 cliente**
+- O servidor ainda processa a requisição normalmente, mas com threads, a aplicação é mais eficiente em termos de resposta, porque o servidor pode lidar com novas requisições enquanto ainda processa outras. No entanto, com apenas um cliente, a melhoria de performance não será notada.
+
+#### b) **2 clientes simultâneos**
+- Quando dois clientes fazem requisições ao mesmo tempo, o servidor agora pode processar ambas as requisições ao mesmo tempo, pois cada requisição é tratada por uma thread diferente. O tempo de espera para o segundo cliente será reduzido em comparação ao servidor sem threads.
+
+#### c) **5 clientes simultâneos**
+- Agora, o servidor pode lidar com múltiplas requisições simultâneas. Cada cliente é atendido em uma thread separada, o que reduz consideravelmente o tempo de espera. O desempenho do servidor com threads é muito melhor, permitindo atender vários clientes simultaneamente sem bloqueios.
+
+#### d) **10 clientes simultâneos**
+- Com 10 clientes simultâneos, o servidor com threads será mais eficiente do que o servidor sem threads. O número de threads que o servidor pode criar é muito maior do que a capacidade de processar requisições de forma sequencial, então o tempo de resposta será muito melhor. No entanto, dependendo dos recursos do sistema, o servidor pode começar a ficar lento quando muitas threads estão sendo criadas.
+
+### 7. **Diferença no funcionamento dos servidores sem e com threads**
+
+- **Sem threads**: O servidor processa as requisições de forma sequencial, o que significa que um cliente terá que esperar até que a requisição do cliente anterior seja totalmente processada. Isso pode causar delays significativos conforme o número de clientes aumenta.
+  
+- **Com threads**: O servidor cria uma nova thread para cada requisição, permitindo que múltiplas requisições sejam atendidas simultaneamente. Isso melhora a performance do servidor e reduz o tempo de espera dos clientes, especialmente quando há múltiplos clientes fazendo requisições ao mesmo tempo.
+
+### Conclusão
+
+Com a introdução de threads, o servidor torna-se mais eficiente ao lidar com múltiplas requisições simultâneas, o que resulta em um melhor desempenho em ambientes de maior carga. O uso de threads é uma forma eficaz de escalabilidade, permitindo que o servidor lide com vários clientes ao mesmo tempo, sem bloquear o processamento de uma requisição enquanto espera a conclusão de outra.
 
 
 ## Links
