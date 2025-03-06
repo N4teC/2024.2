@@ -21,11 +21,13 @@
 
 ### Aluno
 
-- nome: 
-- matrícula: 
+- **Nome:** Nathan Cavalcante de Lima  
+- **Matrícula:** 20232014040036  
 
-### Relato
+### Relato  
+Realizei a integração do Docker no meu projeto do PDS, chamado **Arkheion**.  
+Primeiramente, movi o arquivo `requirements.txt` para o diretório do projeto `mysite`. Em seguida, criei os arquivos `Dockerfile` e `docker-compose.yml`. Ao testar a configuração, encontrei um erro relacionado à cópia do arquivo `requirements.txt`. Como o arquivo original continha cerca de 600 a 700 linhas e eu não tinha certeza de quais dependências eram essenciais para o funcionamento da aplicação, consultei o **Deepseek** para ajudar na limpeza do arquivo, mantendo apenas as bibliotecas principais.  
 
-### Arquivos docker e de configuração do django
-
-**observação** coloque nomes nos arquivos antes do códigos-fonte.
+Após a limpeza, executei o comando `docker-compose up --build` para construir e iniciar o contêiner Docker. Utilizei o comando especificado no arquivo `docker-compose.yml`:  
+```bash  
+bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"  
